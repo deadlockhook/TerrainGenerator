@@ -6,17 +6,42 @@ public class TerrainGenerator : MonoBehaviour
     public int width = 50;
     public int depth = 50;
     public float scale = 5f;
-    public int octaves = 4;
-    public float persistence = 0.5f;
-    public float lacunarity = 2f;
     public float heightMultiplier = 5f;
 
     private MeshFilter meshFilter;
+    private Coroutine terrainCoroutine;
+
+    private float progress = 0f; 
+
     void Start()
     {
         meshFilter = gameObject.GetComponent<MeshFilter>();
         MeshRenderer renderer = gameObject.GetComponent<MeshRenderer>();
-        StartCoroutine(GenerateTerrain());
+        StartTerrainGeneration();
+    }
+
+    void Update()
+    {
+        if (Input.GetKeyDown(KeyCode.B))
+        {
+            StartTerrainGeneration();
+        }
+    }
+
+    void OnGUI()
+    {
+        GUI.Label(new Rect(10, 10, 300, 20), $"Terrain Generation Progress: {progress * 100f:0.0}%");
+        GUI.Label(new Rect(10, 30, 300, 20), "Press 'B' to rebuild the terrain");
+    }
+
+    void StartTerrainGeneration()
+    {
+        if (terrainCoroutine != null)
+        {
+            StopCoroutine(terrainCoroutine);
+        }
+
+        terrainCoroutine = StartCoroutine(GenerateTerrain());
     }
     IEnumerator GenerateTerrain()
     {
@@ -52,15 +77,18 @@ public class TerrainGenerator : MonoBehaviour
                 vertexIndex++;
             }
 
-            UpdateMesh(vertices, triangles, vertexIndex);
+            progress = (float)(x + 1) / width;
 
-            yield return new WaitForSeconds(0.02f); 
+            UpdateMesh(vertices, triangles);
+
+            yield return new WaitForSeconds(0.02f);
         }
 
-        UpdateMesh(vertices, triangles, vertexIndex);
+        UpdateMesh(vertices, triangles);
+        progress = 1f; 
     }
 
-    void UpdateMesh(Vector3[] vertices, int[] triangles, int vertexCount)
+    void UpdateMesh(Vector3[] vertices, int[] triangles)
     {
         Mesh mesh = new Mesh();
         mesh.vertices = vertices;
@@ -80,7 +108,7 @@ public class TerrainGenerator : MonoBehaviour
                 float frequency = 1;
                 float height = 0;
 
-                for (int i = 0; i < octaves; i++)
+                for (int i = 0; i < 4; i++)
                 {
                     float sampleX = (x + transform.position.x) / scale * frequency;
                     float sampleZ = (z + transform.position.z) / scale * frequency;
@@ -88,8 +116,8 @@ public class TerrainGenerator : MonoBehaviour
                     float perlinValue = Mathf.PerlinNoise(sampleX, sampleZ);
                     height += perlinValue * amplitude;
 
-                    amplitude *= persistence;
-                    frequency *= lacunarity;
+                    amplitude *= 0.5f;
+                    frequency *= 2f;
                 }
 
                 heightMap[x, z] = height;
