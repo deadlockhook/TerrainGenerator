@@ -1,25 +1,24 @@
 using UnityEngine;
+using System.Collections;
 
 public class TerrainGenerator : MonoBehaviour
 {
-    public int width = 50;       
-    public int depth = 50;    
-    public float scale = 5f;    
-    public int octaves = 4;       
-    public float persistence = 0.5f; 
-    public float lacunarity = 2f;   
-    public float heightMultiplier = 5f; 
+    public int width = 50;
+    public int depth = 50;
+    public float scale = 5f;
+    public int octaves = 4;
+    public float persistence = 0.5f;
+    public float lacunarity = 2f;
+    public float heightMultiplier = 5f;
 
     private MeshFilter meshFilter;
-
     void Start()
     {
         meshFilter = gameObject.GetComponent<MeshFilter>();
         MeshRenderer renderer = gameObject.GetComponent<MeshRenderer>();
-        GenerateTerrain();
+        StartCoroutine(GenerateTerrain());
     }
-
-    void GenerateTerrain()
+    IEnumerator GenerateTerrain()
     {
         float[,] heightMap = GenerateHeightMap();
         Vector3[] vertices = new Vector3[width * depth];
@@ -49,17 +48,27 @@ public class TerrainGenerator : MonoBehaviour
 
                     triangleIndex += 6;
                 }
+
                 vertexIndex++;
             }
+
+            UpdateMesh(vertices, triangles, vertexIndex);
+
+            yield return new WaitForSeconds(0.02f); 
         }
 
+        UpdateMesh(vertices, triangles, vertexIndex);
+    }
+
+    void UpdateMesh(Vector3[] vertices, int[] triangles, int vertexCount)
+    {
         Mesh mesh = new Mesh();
         mesh.vertices = vertices;
         mesh.triangles = triangles;
         mesh.RecalculateNormals();
-        mesh.RecalculateBounds();
         meshFilter.mesh = mesh;
     }
+
     float[,] GenerateHeightMap()
     {
         float[,] heightMap = new float[width, depth];
@@ -88,5 +97,4 @@ public class TerrainGenerator : MonoBehaviour
         }
         return heightMap;
     }
-
 }
